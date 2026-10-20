@@ -12,3 +12,4 @@ __pycache__/
 .model-cache/
 .uv-cache/
 .ipynb_checkpoints/
+evidence/
