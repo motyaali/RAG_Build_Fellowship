@@ -1,0 +1,45 @@
+Weeks 1-4 checks: October 20, 2026; Python 3.12.14; no live Gemini calls.
+
+$ .venv/Scripts/python.exe scripts/verify_setup.py --offline
+Verifying OAF RAG setup...
+
+[OK]   Python version — 3.12.14
+[OK]   rag.config
+[OK]   chromadb
+[OK]   pypdf
+[OK]   google.genai
+[OK]   pytest
+Offline checks only; live provider calls were not attempted.
+Exit: 0
+
+$ .venv/Scripts/python.exe scripts/ingest.py --dry-run
+Loading documents from data\workshop_corpus...
+Loaded 7 document(s).
+Created 47 chunk(s) (size=500, overlap=50).
+  - data\workshop_corpus\apache_foundation_faq.md::0: '# Apache Software Foundation — frequently asked questions  A short, illustrative FAQ drawn from public information about the Apache Software Foundation. Used he'
+  - data\workshop_corpus\apache_foundation_faq.md::1: 'f open-source software projects, all of which are developed under a common governance model and released under the Apache License, version 2.0.  ## How many pro'
+  - data\workshop_corpus\apache_foundation_faq.md::2: 'e Incubator before graduating to top-level status.  ## What is the Apache License?  The Apache License 2.0 is a permissive open-source licence. Anyone may use, '
+  ... and 44 more.
+Dry run — nothing stored.
+15:34:17 WARNING pypdf._reader :: incorrect startxref pointer(1)
+15:34:17 WARNING pypdf._reader :: parsing for Object Streams
+Exit: 0
+
+$ .venv/Scripts/python.exe scripts/validate_retrieval.py
+PASS: 7 documents, 47 persistent vectors, idempotent upsert, 8 top-k queries, metadata filter
+15:34:19 WARNING pypdf._reader :: incorrect startxref pointer(1)
+15:34:19 WARNING pypdf._reader :: parsing for Object Streams
+Exit: 0
+
+$ .venv/Scripts/python.exe -m pytest --basetemp=.test-tmp-central
+sssssssss..............ssss...ss..........                               [100%]
+27 passed, 15 skipped in 4.34s
+Exit: 0
+
+$ .venv/Scripts/ruff.exe check .
+All checks passed!
+Exit: 0
+
+$ .venv/Scripts/ruff.exe format --check .
+44 files already formatted
+Exit: 0
