@@ -15,6 +15,8 @@ This repository is the central source for the code, official sample corpus, test
 
 Later-workshop generation and API stubs are retained from the instructor scaffold and are outside the current deliverable.
 
+[October 20 speaking notes](docs/meeting-notes-oct20.md) are included for the touchbase.
+
 ## Review in five minutes
 
 1. Read [the status and evidence](STATUS.md).
