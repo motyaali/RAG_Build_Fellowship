@@ -36,34 +36,67 @@ def _state(request: Request):  # type: ignore[no-untyped-def]
 @router.get("/health", response_model=HealthResponse)
 def health(request: Request) -> HealthResponse:
     """Lightweight liveness check that also reports current configuration."""
-    # TODO Workshop 6:
-    # - Read the store from ``_state(request).store``.
-    # - Return a HealthResponse with status="ok", the active providers, and
-    #   ``store.count()`` as the number of indexed chunks.
-    raise NotImplementedError("Workshop 6: implement GET /health")
+    state = _state(request)
+    return HealthResponse(
+        status="ok",
+        llm_provider=settings.llm_provider,
+        embeddings_provider=settings.embeddings_provider,
+        indexed_chunks=state.store.count(),
+    )
 
 
 @router.post("/ask", response_model=AskResponse)
 def ask(payload: AskRequest, request: Request) -> AskResponse:
     """Run the RAG pipeline against ``payload.question`` and return an answer."""
-    # TODO Workshop 6:
-    # 1. Read the pipeline from ``_state(request).pipeline``.
-    # 2. Call ``pipeline.answer(payload.question, k=payload.top_k,
-    #    temperature=payload.temperature)``.
-    # 3. Convert each source ``Chunk`` into a ``Source`` schema.
-    # 4. Return an ``AskResponse`` with answer, sources, and the original question.
-    raise NotImplementedError("Workshop 6: implement POST /ask")
+    pipeline = _state(request).pipeline
+    result = pipeline.answer(
+        payload.question,
+        k=payload.top_k,
+        temperature=payload.temperature,
+    )
+    sources = [
+        Source(
+            source=chunk.source,
+            chunk_index=chunk.chunk_index,
+            text=chunk.text,
+            metadata=chunk.metadata,
+        )
+        for chunk in result.sources
+    ]
+    return AskResponse(
+        answer=result.text,
+        sources=sources,
+        question=result.question,
+    )
 
 
 @router.post("/ingest", response_model=IngestResponse)
 def ingest(payload: IngestRequest, request: Request) -> IngestResponse:
     """Re-run ingestion against a directory or file path."""
-    # TODO Workshop 6:
-    # 1. Resolve the target path (``payload.path`` or ``settings.data_dir``).
-    # 2. If the path doesn't exist, raise ``HTTPException(status_code=404, ...)``.
-    # 3. If ``payload.clear`` is True, call ``store.clear()`` first.
-    # 4. Use ``DocumentLoader().load(target)`` and ``Chunker().chunk(documents)``,
-    #    then ``store.add(chunks)``.
-    # 5. Return an ``IngestResponse`` with the document/chunk counts and the
-    #    final ``store.count()``.
-    raise NotImplementedError("Workshop 6: implement POST /ingest")
+    target = Path(payload.path).expanduser() if payload.path else settings.data_dir
+    target = target.resolve()
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"Ingestion path not found: {target}")
+    if not (target.is_file() or target.is_dir()):
+        raise HTTPException(status_code=400, detail="Ingestion path must be a file or directory")
+
+    state = _state(request)
+    try:
+        documents = DocumentLoader().load(target)
+        chunks = Chunker().chunk(documents)
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"Could not load ingestion path: {exc}") from exc
+
+    if payload.clear:
+        state.store.clear()
+    try:
+        state.store.add(chunks)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not embed or index documents: {exc}") from exc
+
+    return IngestResponse(
+        documents_loaded=len(documents),
+        chunks_created=len(chunks),
+        chunks_indexed=state.store.count(),
+        path=str(target),
+    )
