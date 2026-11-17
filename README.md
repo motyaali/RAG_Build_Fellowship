@@ -1,6 +1,6 @@
 # RAG Build Fellowship
 
-Weeks 1–4 implementation for the Build Fellowship project led by Mayank Gowda.
+Weeks 1–6 implementation for the Build Fellowship project led by Mayank Gowda.
 
 ## Setup and checks
 
@@ -33,7 +33,17 @@ The local path uses all-MiniLM-L6-v2 (384 dimensions), downloads its public mode
 
 Week 4 query and metadata-filter examples are in [notebooks/week4_retrieval.ipynb](notebooks/week4_retrieval.ipynb). Tests cover ingestion, persistent storage, upserts and retrieval.
 
-Live Gemini indexing/querying has not been reverified in this copy. Local semantic retrieval has been verified.
+## Generation and API
+
+The Week 5 pipeline retrieves source chunks, formats numbered context, and asks the configured LLM for a grounded answer. The prompt instructs the model to say when the context does not answer a question. The Week 6 FastAPI service initializes providers and the vector store once at startup and exposes:
+
+- `GET /health` for service and indexed-chunk status
+- `POST /ask` for answers and source chunks
+- `POST /ingest` to load or refresh a local document path
+
+Start the API with `uv run uvicorn rag.api.main:app --reload`, then open `http://127.0.0.1:8000/docs`. The API is intended for local development; before exposing it to other users, configure authentication, restrict CORS origins, and limit which paths may be ingested.
+
+Live Gemini indexing/querying and live API startup have not been reverified in this copy. Local semantic retrieval was verified in the earlier project checkpoint. The GitHub repository includes API and generation tests marked as skipped for Workshop 7; the current API and generation implementation still needs a fresh test run before it is described as verified.
 
 ## Attribution
 
